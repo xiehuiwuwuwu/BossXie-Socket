@@ -24,6 +24,12 @@ public:
     int send_socket(int,char*);
     void close_socket();
     int get_sockfd();
+    void recv_socket();
+    struct msgData
+    {
+        int id;
+        char msg[MAX];
+    };
 private:
     int sendfd;
     int socketfd;
@@ -31,6 +37,7 @@ private:
     char recvbuff[MAX];
     char sendbuff[MAX];
     int connfd;;        //定义connect句柄
+    int recvnum;        //定义recv句柄
 };
 
 Client::Client()
@@ -70,6 +77,7 @@ int Client::connect_socket()
     }
     else
     {
+        std::cout << "connfd is " << connfd << std::endl;
         std::cout << "connect socket success " << std::endl;
         return 0;
     }
@@ -82,6 +90,20 @@ int Client::send_socket(int sockfd,char* sendline)
     {
         std::cout << "send message failed..." << std::endl;
         return -1;
+    }
+}
+
+void Client::recv_socket()
+{
+    while(1)
+    {
+        recvnum = recv(socketfd,recvbuff,MAX,0);
+        if (recvnum > 0)
+        {
+            recvbuff[recvnum] = '\0';
+            std::cout << recvbuff << std::endl;
+            memset(recvbuff,0,sizeof(recvbuff));
+        }
     }
 }
 
@@ -102,6 +124,10 @@ int Client::get_sockfd()
 
 int main()
 {
+    cout << "enter your name please:";
+    char name[10];
+    cin >> name;
+    
     char* psend;
     Client socking;
     psend = socking.get_sendbuff();
@@ -110,21 +136,23 @@ int main()
     {
         return 0;
     }
+    std::thread t1(&Client::recv_socket,&socking);
     while(1)
     {
-        std::cin >> psend;
-
+        cin.getline(psend,200);
         if (psend[0] == 'q' && psend[1] == '\0')
         {
             break;
         }
-        if (socking.send_socket(socking.get_sockfd(),psend) == -1)
+        char s[MAX+20];
+        sprintf(s,"%s%s%s",name,":",psend);
+        if (socking.send_socket(socking.get_sockfd(),s) == -1)
         {
             std::cout << "send messages failed..." << std::endl;
             return 0;
         }
-        //memset(psend,0,sizeof(sendbuff));
     }
     socking.close_socket();
+    t1.detach();
 }
 
